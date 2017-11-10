@@ -1,0 +1,6 @@
+	IN
+	STO	i
+	STO	i
+	OUT
+	OUT
+i	DAT

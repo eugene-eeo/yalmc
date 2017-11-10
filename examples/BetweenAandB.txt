@@ -1,0 +1,31 @@
+# Assembler file to output all integers between
+# two given inputs.
+	IN
+	STO	small
+	IN		
+	STO	big
+# Next check that we received the smaller first			
+	SUB	small
+	BRP	ok	# no need to exchange
+	LDA	small	# exchange
+	STO	temp
+	LDA	big		
+	STO	small		
+	LDA	temp		
+	STO	big		
+# Now start outputting the numbers
+ok	LDA	small	# add 1 to small	
+	ADD	one	# constant	
+	STO	small		
+while	SUB	big		
+	BRP	endw	# not smaller any more	
+	LDA	small	# display small	
+	OUT		
+	ADD	one	# add 1 to small	
+	STO	small		
+	BR	while	# loop back	
+endw	HLT		# stop	
+one	DAT	001	# defining a constant	
+small	DAT		# space for data value	
+big	DAT		# space for data value	
+temp	DAT	# space for data value
