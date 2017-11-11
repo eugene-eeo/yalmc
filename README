@@ -18,8 +18,9 @@
                        / Yet Another LMC /
 
     WIP to bring running LMC code in parallel to the Mac and
-    Windows OS. Aims to be (not bug-for-bug) compatible with[2]
-    the OG LMC simulator[1].
+    Windows OS. Aims to be (not bug-for-bug) compatible with
+    the OG LMC simulator[1]. No UI, but has pretty good HTML
+    output (subjective).
 
     Usage:
     ~~~~~~
@@ -28,6 +29,7 @@
         $ yalmc -filename=PATH_TO_CODE <input1> <input2> <input3> ...
         $ yalmc -debug -filename=<x> ...
         $ yalmc -batch -filename=folder/test_cases.txt -workers=4 > f.html
+        $ yalmc -heatmap -filename=<x> ... > f.html
 
     Roadmap:
     ~~~~~~~~
@@ -37,7 +39,7 @@
         [x] Basic execution of code in VM
         [x] Batch processing
         [x] Friendlier output
-        [ ] Mailbox heatmap
+        [x] Mailbox heatmap
         [ ] Actually test this
 
 
