@@ -1,13 +1,4 @@
 
-
-                           yalmc
-
-                     / Yet Another LMC /
-
-    WIP to bring running LMC code in parallel to the Mac and
-    Windows OS. Aims to be compatible with the OG LMC simulator[1].
-
-
                              @-.
                            _  )\\  _
                           / \/ | \/ \
@@ -22,5 +13,31 @@
                          @`   \ /   `@
                                @
 
+                             yalmc
+
+                       / Yet Another LMC /
+
+    WIP to bring running LMC code in parallel to the Mac and
+    Windows OS. Aims to be compatible with the OG LMC simulator[1].
+
+    Usage:
+    ~~~~~~
+
+        $ yalmc -h
+        $ yalmc -filename=PATH_TO_CODE <input1> <input2> <input3> ...
+        $ yalmc -debug -filename=<x> ...
+        $ yalmc -batch -filename=folder/test_cases.txt -workers=4
+
+    Roadmap:
+    ~~~~~~~~
+
+        [ ] Less pedantic parsing phase
+        [x] Code compilation and generation
+        [x] Basic execution of code in VM
+        [x] Batch processing
+        [ ] Friendlier output
+        [ ] Mailbox heatmap
+
 
     [1]: https://community.dur.ac.uk/m.j.r.bordewich/LMC.html
+
