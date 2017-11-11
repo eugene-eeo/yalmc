@@ -18,7 +18,8 @@
                        / Yet Another LMC /
 
     WIP to bring running LMC code in parallel to the Mac and
-    Windows OS. Aims to be compatible with the OG LMC simulator[1].
+    Windows OS. Aims to be (not bug-for-bug) compatible with
+    the OG LMC simulator[1].
 
     Usage:
     ~~~~~~
@@ -31,13 +32,15 @@
     Roadmap:
     ~~~~~~~~
 
-        [ ] Less pedantic parsing phase
+        [x] Less pedantic parsing phase[2]
         [x] Code compilation and generation
         [x] Basic execution of code in VM
         [x] Batch processing
-        [ ] Friendlier output
+        [x] Friendlier output
         [ ] Mailbox heatmap
 
 
     [1]: https://community.dur.ac.uk/m.j.r.bordewich/LMC.html
+    [2]: the yalmc compiler assumes that labels, instructions,
+         and address components are always separated by tabs.
 

@@ -5,6 +5,7 @@ import "errors"
 import "strings"
 import "bufio"
 import "io"
+import "fmt"
 
 var outOfCycles = errors.New("out of cycles")
 
@@ -72,23 +73,29 @@ func batch(workers int, code []int, cases []testCase) []testResult {
 	return res
 }
 
-func parseBatch(r io.Reader) []testCase {
-	cases := []testCase{}
+func parseBatch(r io.Reader) (cases []testCase, errors []error) {
+	// Batch file format:
+	// # comment allowed
+	// Name;Inputs;Outputs;Cycle Limit
+	lineNo := 0
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
+		lineNo++
 		line := strings.TrimSpace(scanner.Text())
 		if line[0] == '#' {
 			continue
 		}
 		contents := strings.SplitN(line, ";", 4)
 		if len(contents) != 4 {
-			break
+			errors = append(errors, fmt.Errorf("Line %d: Invalid test case"))
+			continue
 		}
 		name := contents[0]
 		inputs := mustInt(strings.Split(contents[1], ","))
 		outputs := mustInt(strings.Split(contents[2], ","))
 		cycles, err := strconv.Atoi(contents[3])
 		if err != nil {
+			errors = append(errors, fmt.Errorf("Line %d: Invalid cycle count"))
 			break
 		}
 		cases = append(cases, testCase{
@@ -98,5 +105,5 @@ func parseBatch(r io.Reader) []testCase {
 			cycleLimit: cycles,
 		})
 	}
-	return cases
+	return
 }

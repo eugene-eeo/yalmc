@@ -32,7 +32,7 @@ func mustOpen(filepath string) (fp *os.File) {
 func execFile(path string, inputs []int, debug bool) {
 	fp := mustOpen(path)
 	defer fp.Close()
-	mailboxes, errors := compile(fp)
+	mailboxes, _, errors := compile(fp)
 	if errors != nil && len(errors) != 0 {
 		for _, err := range errors {
 			fmt.Fprintln(os.Stderr, err)
@@ -60,18 +60,6 @@ func execFile(path string, inputs []int, debug bool) {
 	}
 }
 
-func isliceEq(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, x := range a {
-		if b[i] != x {
-			return false
-		}
-	}
-	return true
-}
-
 func main() {
 	filename := flag.String("filename", "", "path to code")
 	workers := flag.Int("workers", 4, "no of workers to use")
@@ -83,39 +71,42 @@ func main() {
 		execFile(*filename, inputs, *debug)
 		return
 	}
+	fmt.Fprintln(os.Stderr, "Reading batch file:", *filename)
 	dirname := filepath.Dir(*filename)
 	fp := mustOpen(*filename)
-	cases := parseBatch(fp)
+	cases, errors := parseBatch(fp)
+	if len(errors) > 0 {
+		for _, e := range errors {
+			fmt.Fprintln(os.Stderr, " ", e)
+		}
+	}
 	dir := mustOpen(dirname)
 	files, err := dir.Readdirnames(-1)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	table := newTable()
 	for _, file := range files {
 		path := filepath.Join(dirname, file)
 		if path == *filename {
 			continue
 		}
-		code, errs := compile(mustOpen(path))
+		code, used, errs := compile(mustOpen(path))
+		fmt.Fprintln(os.Stderr, "  Compiling:", file)
 		// failing to compile a single file is a non-fatal error
 		// so just continue trying to compile other files
 		if errs != nil {
 			for _, e := range errs {
-				fmt.Fprintln(os.Stderr, e)
+				fmt.Fprintln(os.Stderr, "   ", e)
 			}
 			continue
 		}
-		for _, r := range batch(*workers, code, cases) {
-			fmt.Println(
-				file,
-				r.tcase.name,
-				r.tcase.input,
-				r.output,
-				r.tcase.output,
-				isliceEq(r.output, r.tcase.output),
-				r.cycles,
-			)
-		}
+		table.addRow(path, used, batch(*workers, code, cases))
+	}
+	err = table.write(os.Stdout)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

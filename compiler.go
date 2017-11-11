@@ -7,7 +7,6 @@ import "fmt"
 import "strings"
 import "strconv"
 
-var outOfMailboxes error = errors.New("Out of mailboxes")
 var outOfBounds error = errors.New("Number is > 999")
 var instrLookup = map[string]int{
 	"ADD": 100,
@@ -21,6 +20,10 @@ var instrLookup = map[string]int{
 	"OUT": 902,
 	"HLT": 000,
 	"DAT": -1, // special for DAT
+}
+
+func errorMessage(lineNo int, message string) error {
+	return fmt.Errorf("Line %d: %s", lineNo, message)
 }
 
 type Line struct {
@@ -38,10 +41,12 @@ func stoi(s string) (int, error) {
 }
 
 func line_to_int(line *Line, labels map[string]int) (int, error) {
+	// HLT / IN / OUT instructions can be on their own without
+	// any address component
 	if line.instr == 0 || line.instr == 901 || line.instr == 902 {
 		return line.instr, nil
 	}
-	// DAT [xxx]
+	// DAT [xxx], defaults to 0
 	if line.instr == -1 {
 		if line.addr == "" {
 			return 0, nil
@@ -51,7 +56,7 @@ func line_to_int(line *Line, labels map[string]int) (int, error) {
 	// Instructions other than IN/OUT/HLT need a target address
 	// so if we are not given one, error out.
 	if line.addr == "" {
-		return 0, fmt.Errorf("Line %d: No address given", line.lineNo)
+		return 0, errorMessage(line.lineNo, "no address given")
 	}
 	if i, ok := labels[line.addr]; ok {
 		return line.instr + i, nil
@@ -94,13 +99,13 @@ func parseInstruction(s string) (int, error) {
 }
 
 func stringToLine(lineNo int, s string) (*Line, error) {
-	s = strings.Split(s, "#")[0]
+	s = strings.SplitN(s, "#", 2)[0]
 	if len(strings.TrimSpace(s)) == 0 {
 		return nil, nil
 	}
 	c := strings.SplitN(s, "\t", 3)
 	if len(c) < 2 {
-		return nil, fmt.Errorf("Line %d: invalid instruction", lineNo)
+		return nil, errorMessage(lineNo, "bad instruction")
 	}
 	label := strings.TrimSpace(c[0])
 	instr := strings.TrimSpace(strings.ToUpper(c[1]))
@@ -110,8 +115,7 @@ func stringToLine(lineNo int, s string) (*Line, error) {
 	}
 	opcode, err := parseInstruction(instr)
 	if err != nil {
-		fmt.Println(s, c, instr)
-		return nil, err
+		return nil, errorMessage(lineNo, err.Error())
 	}
 	return &Line{
 		label:  label,
@@ -121,7 +125,7 @@ func stringToLine(lineNo int, s string) (*Line, error) {
 	}, nil
 }
 
-func compile(r io.Reader) ([]int, []error) {
+func compile(r io.Reader) ([]int, int, []error) {
 	i := 0            // current mailbox number
 	lineNo := 0       // current line number
 	buff := []*Line{} // compile buffer
@@ -137,18 +141,20 @@ func compile(r io.Reader) ([]int, []error) {
 			continue
 		}
 		i++
+		// Reached mailbox limit, don't bother incrementing
+		if i == 100 {
+			errors = append(errors, errorMessage(lineNo, "Out of mailboxes"))
+			break
+		}
 		if err != nil {
 			errors = append(errors, err)
 			continue
 		}
 		buff = append(buff, line)
-		if i == 100 {
-			errors = append(errors, outOfMailboxes)
-			break
-		}
 	}
 	if len(errors) != 0 {
-		return nil, errors
+		return nil, 0, errors
 	}
-	return lines_to_int(buff)
+	code, errors := lines_to_int(buff)
+	return code, i, errors
 }
