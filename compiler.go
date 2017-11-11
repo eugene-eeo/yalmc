@@ -35,10 +35,14 @@ type Line struct {
 }
 
 func stoi(s string) (int, error) {
-	if len(s) > 3 {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, err
+	}
+	if i > 1000 || i < 0 {
 		return 0, outOfBounds
 	}
-	return strconv.Atoi(s)
+	return i, nil
 }
 
 func lineToInt(line *Line, labels map[string]int) (int, error) {
@@ -66,12 +70,11 @@ func lineToInt(line *Line, labels map[string]int) (int, error) {
 	return line.instr + i, err
 }
 
-func linesToInt(lines []*Line) ([]int, []error) {
+func linesToInt(lines []*Line) ([]int, error) {
 	// Perform 1 pass to first index the positions of the
 	// mailboxes in the code so that it is possible to reference
 	// a mailbox after/before it is defined
 	labels := map[string]int{}
-	errors := []error{}
 	for mailbox, line := range lines {
 		if line.label == "" {
 			continue
@@ -84,8 +87,7 @@ func linesToInt(lines []*Line) ([]int, []error) {
 		instr, err := lineToInt(line, labels)
 		buff[i] = instr
 		if err != nil {
-			errors = append(errors, err)
-			return nil, errors
+			return nil, err
 		}
 	}
 	return buff, nil
@@ -162,6 +164,10 @@ func compile(r io.Reader) ([]int, int, []error) {
 	if len(errors) != 0 {
 		return nil, 0, errors
 	}
-	code, errors := linesToInt(lines)
+	code, err := linesToInt(lines)
+	errors = []error{}
+	if err != nil {
+		errors = append(errors, err)
+	}
 	return code, len(lines), errors
 }

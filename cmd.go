@@ -3,15 +3,14 @@ package main
 import "os"
 import "fmt"
 import "flag"
-import "strconv"
 import "strings"
 import "path/filepath"
 
 func mustInt(strs []string) []int {
 	b := make([]int, len(strs))
 	for i, s := range strs {
-		n, err := strconv.Atoi(s)
-		if err != nil || n > 999 || n < 0 {
+		n, err := stoi(s)
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "Unable to convert arg ", i+1, ": ", s, "to a number")
 			os.Exit(1)
 		}
@@ -50,7 +49,6 @@ func checkErrors(errors []error) {
 		}
 		os.Exit(1)
 	}
-
 }
 
 func execFile(path string, inputs []int, debug bool) {
@@ -74,6 +72,15 @@ func execFile(path string, inputs []int, debug bool) {
 	if debug {
 		printMailboxes(ctx)
 	}
+}
+
+func mustAbs(path string) string {
+	s, err := filepath.Abs(path)
+	if err != nil {
+		toStderr(err)
+		os.Exit(1)
+	}
+	return s
 }
 
 func main() {
@@ -125,7 +132,7 @@ func main() {
 	table := newTable()
 	for _, file := range files {
 		path := filepath.Join(dirname, file)
-		if path == *filename {
+		if mustAbs(path) == mustAbs(*filename) {
 			continue
 		}
 		code, used, errs := compile(mustOpen(path))

@@ -32,18 +32,6 @@ func isliceToString(a []int) string {
 	return strings.Join(b, ", ")
 }
 
-func isliceEq(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, x := range a {
-		if b[i] != x {
-			return false
-		}
-	}
-	return true
-}
-
 type table struct {
 	fragments []string
 }
@@ -53,18 +41,17 @@ func newTable() *table {
 }
 
 func (t *table) addRow(path string, mailboxes int, results []testResult) {
-	abs, _ := filepath.Abs(path)
 	trs := []string{fmt.Sprintf(
 		"<tr><th rowspan='%d'><a href='%s'>%s</a></th><td rowspan='%d'>%d</td></tr>",
 		len(results)+1,
-		abs,
+		path,
 		filepath.Base(path),
 		len(results)+1,
 		mailboxes,
 	)}
 	for _, res := range results {
 		color := "#ffffff"
-		if res.terminated || !isliceEq(res.output, res.tcase.output) {
+		if res.failed() {
 			color = "#ff6666"
 		}
 		trs = append(trs, fmt.Sprintf(

@@ -23,6 +23,22 @@ type testResult struct {
 	terminated bool
 }
 
+func isliceEq(a []int, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, x := range a {
+		if b[i] != x {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *testResult) failed() bool {
+	return t.terminated || !isliceEq(t.tcase.output, t.output)
+}
+
 func runWith(vm *context, t *testCase) (output []int, cycles int, err error) {
 	vm.input = t.input
 	for !vm.halted {
