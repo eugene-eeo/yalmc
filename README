@@ -31,15 +31,23 @@
         $ yalmc -batch -filename=folder/test_cases.txt -workers=4 > f.html
         $ yalmc -heatmap -filename=<x> ... > f.html
 
+    Screenshots:
+    ~~~~~~~~~~~~
+
+        Batch Processing: https://github.com/eugene-eeo/yalmc/raw/master/screenshots/batch.png
+        Debug (WIP): https://github.com/eugene-eeo/yalmc/raw/master/screenshots/debug.png
+        Heatmap: https://raw.githubusercontent.com/eugene-eeo/yalmc/master/screenshots/heatmap.png
+
     Roadmap:
     ~~~~~~~~
 
-        [x] Less pedantic parsing phase[2]
+        [ ] Less pedantic parsing phase[2]
         [x] Code compilation and generation
         [x] Basic execution of code in VM
         [x] Batch processing
         [x] Friendlier output
         [x] Mailbox heatmap
+        [ ] Nicer debug output
         [ ] Actually test this
 
 
