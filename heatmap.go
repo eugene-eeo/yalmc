@@ -1,21 +1,22 @@
 package main
 
-import "strconv"
 import "io"
 import "fmt"
 
 const heatmapHTMLFrontMatter = `
 <style>
 table  { border-collapse: collapse; }
-td     { padding: 0 0.5em; border: 1px solid #000; text-align: left; font-family: monospace; }
-.count { font-weight: bold; }
+td     { padding: 0 0.5em; border: 1px solid #000; text-align: left; }
+pre,td { font-family: 'Inconsolata', monospace; }
+.count { font-weight: bold; text-align: right; }
 </style>
 <table>
 `
 
 type entry struct {
-	text  string
-	count int
+	mailbox int
+	text    string
+	count   int
 }
 
 func (e *entry) toHTML(max int) string {
@@ -23,9 +24,10 @@ func (e *entry) toHTML(max int) string {
 	g := int(255 * (2 * (1 - e.count/max)))
 	color := fmt.Sprintf("rgba(%d, %d, 0, 0.35)", r, g)
 	return fmt.Sprintf(
-		"<tr><td style='background-color: %s' class='count'>%d</td><td><pre>%s</pre></td></tr>",
+		"<tr><td style='background-color: %s' class='count'>%d</td><td>%02d</td><td><pre>%s</pre></td></tr>",
 		color,
 		e.count,
+		e.mailbox,
 		e.text,
 	)
 }
@@ -96,15 +98,15 @@ func (h *heatmapVM) run(input []int) (output []int, err error) {
 
 func (h *heatmapVM) format() []entry {
 	entries := make([]entry, 100)
-	for i, line := range h.lines {
-		entries[i] = entry{line.text, 0}
-	}
-	for i, count := range h.heatmap {
-		text := strconv.Itoa(h.vm.mem[i])
+	for i, _ := range entries {
+		count, ok := h.heatmap[i]
+		text := ""
 		if len(h.lines) > i {
 			text = h.lines[i].text
+		} else if ok {
+			text = fmt.Sprintf("%03d", h.vm.mem[i])
 		}
-		entries[i] = entry{text, count}
+		entries[i] = entry{i, text, count}
 	}
 	return entries
 }

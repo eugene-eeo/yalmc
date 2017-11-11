@@ -37,7 +37,7 @@ func printMailboxes(vm *context) {
 	row := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		for j := 0; j < 10; j++ {
-			row[j] = fmt.Sprintf("%3d", vm.mem[i*10+j])
+			row[j] = fmt.Sprintf("%03d", vm.mem[i*10+j])
 		}
 		fmt.Fprintln(os.Stderr, strings.Join(row, " | "))
 	}
