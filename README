@@ -18,7 +18,7 @@
                        / Yet Another LMC /
 
     WIP to bring running LMC code in parallel to the Mac and
-    Windows OS. Aims to be (not bug-for-bug) compatible with
+    Windows OS. Aims to be (not bug-for-bug) compatible with[2]
     the OG LMC simulator[1].
 
     Usage:
@@ -27,7 +27,7 @@
         $ yalmc -h
         $ yalmc -filename=PATH_TO_CODE <input1> <input2> <input3> ...
         $ yalmc -debug -filename=<x> ...
-        $ yalmc -batch -filename=folder/test_cases.txt -workers=4
+        $ yalmc -batch -filename=folder/test_cases.txt -workers=4 > f.html
 
     Roadmap:
     ~~~~~~~~
@@ -38,9 +38,13 @@
         [x] Batch processing
         [x] Friendlier output
         [ ] Mailbox heatmap
+        [ ] Actually test this
 
 
     [1]: https://community.dur.ac.uk/m.j.r.bordewich/LMC.html
     [2]: the yalmc compiler assumes that labels, instructions,
-         and address components are always separated by tabs.
+         and address components are always separated by tabs;
+         whereas this is not enforced in the OG LMC, making
+         this assumption makes everything much easier (when
+         parsing/generating code).
 
