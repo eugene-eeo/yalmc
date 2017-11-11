@@ -74,15 +74,6 @@ func execFile(path string, inputs []int, debug bool) {
 	}
 }
 
-func mustAbs(path string) string {
-	s, err := filepath.Abs(path)
-	if err != nil {
-		toStderr(err)
-		os.Exit(1)
-	}
-	return s
-}
-
 func main() {
 	filename := flag.String("filename", "", "path to code")
 	workers := flag.Int("workers", 4, "no of workers to use")
@@ -132,14 +123,14 @@ func main() {
 	table := newTable()
 	for _, file := range files {
 		path := filepath.Join(dirname, file)
-		if mustAbs(path) == mustAbs(*filename) {
+		if filepath.Base(path) == filepath.Base(*filename) {
 			continue
 		}
 		code, used, errs := compile(mustOpen(path))
 		fmt.Fprintln(os.Stderr, "  Compiling:", file)
 		// failing to compile a single file is a non-fatal error
 		// so just continue trying to compile other files
-		if errs != nil {
+		if len(errs) > 0 {
 			for _, e := range errs {
 				fmt.Fprintln(os.Stderr, "   ", e)
 			}

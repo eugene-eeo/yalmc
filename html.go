@@ -10,6 +10,7 @@ const tableFrontmatter string = `
 <style>
 table { border-collapse: collapse; }
 td,th { padding: 0 0.5em; border: 1px solid #000; }
+.cycles { text-align: right; }
 </style>
 <table>
 <tr>
@@ -42,9 +43,8 @@ func newTable() *table {
 
 func (t *table) addRow(path string, mailboxes int, results []testResult) {
 	trs := []string{fmt.Sprintf(
-		"<tr><th rowspan='%d'><a href='%s'>%s</a></th><td rowspan='%d'>%d</td></tr>",
+		"<tr><th rowspan='%d'>%s</th><td rowspan='%d'>%d</td></tr>",
 		len(results)+1,
-		path,
 		filepath.Base(path),
 		len(results)+1,
 		mailboxes,
@@ -55,7 +55,7 @@ func (t *table) addRow(path string, mailboxes int, results []testResult) {
 			color = "#ff6666"
 		}
 		trs = append(trs, fmt.Sprintf(
-			"<tr style='background-color:%s'><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td></tr>",
+			"<tr style='background-color:%s'><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class='cycles'>%d</td><td class='cycles'>%d</td></tr>",
 			color,
 			res.tcase.name,
 			isliceToString(res.tcase.input),
