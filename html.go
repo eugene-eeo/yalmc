@@ -7,6 +7,10 @@ import "fmt"
 import "io"
 
 const tableFrontmatter string = `
+<style>
+table { border-collapse: collapse; }
+td,th { padding: 0 0.5em; border: 1px solid #000; }
+</style>
 <table>
 <tr>
 	<th>Filename</th>
@@ -15,6 +19,7 @@ const tableFrontmatter string = `
 	<th>Inputs</th>
 	<th>Expected Output</th>
 	<th>Output</th>
+	<th>Max Cycles</th>
 	<th>Cycles</th>
 </tr>
 `
@@ -63,12 +68,13 @@ func (t *table) addRow(path string, mailboxes int, results []testResult) {
 			color = "#ff6666"
 		}
 		trs = append(trs, fmt.Sprintf(
-			"<tr style='background-color:%s'><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td></tr>",
+			"<tr style='background-color:%s'><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td></tr>",
 			color,
 			res.tcase.name,
 			isliceToString(res.tcase.input),
 			isliceToString(res.tcase.output),
 			isliceToString(res.output),
+			res.tcase.cycleLimit,
 			res.cycles,
 		))
 	}

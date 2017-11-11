@@ -29,6 +29,16 @@ func mustOpen(filepath string) (fp *os.File) {
 	return
 }
 
+func printMailboxes(vm *context) {
+	row := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 10; j++ {
+			row[j] = fmt.Sprintf("%3d", vm.mem[i*10+j])
+		}
+		fmt.Fprintln(os.Stderr, strings.Join(row, " | "))
+	}
+}
+
 func execFile(path string, inputs []int, debug bool) {
 	fp := mustOpen(path)
 	defer fp.Close()
@@ -39,16 +49,10 @@ func execFile(path string, inputs []int, debug bool) {
 		}
 		os.Exit(1)
 	}
-	if debug {
-		row := make([]string, 10)
-		for i := 0; i < 10; i++ {
-			for j := 0; j < 10; j++ {
-				row[j] = fmt.Sprintf("%3d", mailboxes[i*10+j])
-			}
-			fmt.Fprintln(os.Stderr, strings.Join(row, " | "))
-		}
-	}
 	ctx := newContextFromSlice(mailboxes)
+	if debug {
+		printMailboxes(ctx)
+	}
 	ctx.input = inputs
 	outputs, err := ctx.run()
 	if err != nil {
@@ -57,6 +61,9 @@ func execFile(path string, inputs []int, debug bool) {
 	}
 	for _, out := range outputs {
 		fmt.Println(out)
+	}
+	if debug {
+		printMailboxes(ctx)
 	}
 }
 
