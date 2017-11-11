@@ -110,6 +110,7 @@ func stringToLine(lineNo int, s string) (*Line, error) {
 	}
 	opcode, err := parseInstruction(instr)
 	if err != nil {
+		fmt.Println(s, c, instr)
 		return nil, err
 	}
 	return &Line{

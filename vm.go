@@ -25,6 +25,13 @@ func newContextFromSlice(mailboxes []int) *context {
 	return &ctx
 }
 
+func (c *context) reset() {
+	c.input = []int{}
+	c.output = []int{}
+	c.halted = false
+	c.pc = 0
+}
+
 func (c *context) fetchExecute() (err error) {
 	instruction := c.mem[c.pc]
 	c.pc = (c.pc + 1) % 1000
@@ -35,17 +42,22 @@ func (c *context) fetchExecute() (err error) {
 		c.halted = true
 		return
 	case 1: // ADD
+		c.neg = false
 		c.acc += c.mem[addr]
 		c.acc %= 1000
 		return
 	case 2: // SUB
 		c.acc -= c.mem[addr]
+		if c.acc < 0 {
+			c.neg = true
+		}
 		c.acc %= 1000
 		return
 	case 3: // STO
 		c.mem[addr] = c.acc
 		return
 	case 5: // LDA
+		c.neg = false
 		c.acc = c.mem[addr]
 		return
 	case 6: // BR
@@ -57,7 +69,7 @@ func (c *context) fetchExecute() (err error) {
 		}
 		return
 	case 8:
-		if c.acc >= 0 {
+		if !c.neg {
 			c.pc = addr
 		}
 		return
@@ -70,6 +82,7 @@ func (c *context) fetchExecute() (err error) {
 				return
 			}
 			c.acc = c.input[0]
+			c.neg = false
 			c.input = c.input[1:]
 			return
 		}
@@ -86,7 +99,7 @@ func (c *context) run() (output []int, err error) {
 	for !c.halted {
 		err = c.fetchExecute()
 		if err != nil {
-			return
+			break
 		}
 	}
 	output = c.output

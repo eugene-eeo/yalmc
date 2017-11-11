@@ -1,0 +1,67 @@
+	IN		#Input the number to test.
+	STO	num	#Stores the number in num.
+	LDA	one	#Loads the value stored in one, 001.
+	STO	dvsr	#Sets dvsrt, the divisor, to equal 1
+	STO	total	#Sets total, the total of , to equal 1.
+	LDA	num	#Loads the number from num.
+	SUB	dvsr	#Subtract the divisor.
+	SUB	dvsr	#Subtract the divisor a second time.
+	BRP	ntrmdt	#If the number >2 go to the intermediate loop.
+	BR	nthrnm	#If the number<=2 go to the neither number loop.
+
+ntrmdt	LDA	num	#Load the value of num.
+	ADD	one	#Increase the value of num by one, 001.
+
+nxtdvsr	LDA	num	#Load the value of num.
+	STO	temp	#Store the value of num in temp.
+	LDA	dvsr	#Load dvsr, the divisor.
+	ADD	one	#Increase dvsr by one.
+	STO	dvsr	#Store in dvsr.
+	LDA	num	#Load the value of num.
+	SUB	dvsr	#Subtract the divisor.
+	SUB	dvsr	#Subtract the divisor a second time.
+	BRP	loop	#Branch on positive to loop.
+	BR	fin	#Branch to fin.
+
+loop	LDA	temp	#Loads the value of temp.
+	SUB	dvsr	#Subtract the value of dvsr from temp.
+	STO	temp	#Stores the value in temp.
+	BRZ	plsdvsr	#Branch on zero to plsdvsr.
+	BRP	loop	#Branch on positive to loop.
+	BR	nxtdvsr	#Branch to nxtdvsr.
+
+plsdvsr	LDA	total	#Load the value stored in total.
+	ADD	dvsr	#Add the value stored in dvsr.
+	STO	total	#Stores the new value for the total.
+	SUB	num	#Subtract the input.
+	BRZ	nxtdvsr	#Branch on zero to nxtdvsr.
+	BRP	bndntnm	#Branch on positive to bndntnm as the total would exceed the value of the number, making it abundant.
+	BR	nxtdvsr	#Branch to nxtdvsr.
+
+fin	LDA	total	#Load the total.
+	SUB	num	#Subtract the input from the sum of the factors to test if the number is perfect or abundant.
+	BRZ	prfctnm	#If the input is equal to the sum of its factors, then it is perfect.
+	BRP	bndntnm	#If the input is less than the sum of its factors, then it is abundant.
+	BR	nthrnm	#If the number is greater then the sum of its factors, then it isnt abundant or perfect.
+	
+prfctnm	LDA	prfct	#Load the value of prfct, 999 to signify taht the num is perfect.
+	OUT		#Output the value of prfct, 999.
+	HLT		#Halts the code.
+
+bndntnm	LDA	bndnt	#Load the value of bndnt, 888 to signify that the num is abundant.
+	OUT		#Output the value of bndnt, 888.
+	HLT		#Halts the code.
+
+nthrnm	LDA	nthr	#Loads the value of nthr, 777 to signify that the num is neither abundant or perfect.
+	OUT		#Output the value of nthr, 777.
+	HLT		#Halts the code.
+
+num	DAT	000	#Defines num as having the value 000.
+prfct	DAT	999	#Defines prfct as having the value 999.
+bndnt	DAT	888	#Defines bndnt as having the value 888.
+nthr	DAT	777	#Defines nthr as having the value 777.
+dvsr	DAT	000	#Defines dvsr as having the value 000.
+total	DAT	000	#Defines total as having the value 000.
+temp	DAT	000	#Defines temp as having the value 000.
+zero	DAT	000	#Defines zero as having the value 000.
+one	DAT	001	#Defines one as having the value 001.
