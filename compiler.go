@@ -27,6 +27,7 @@ func errorMessage(lineNo int, message string) error {
 }
 
 type Line struct {
+	text   string
 	lineNo int
 	label  string
 	instr  int
@@ -40,7 +41,7 @@ func stoi(s string) (int, error) {
 	return strconv.Atoi(s)
 }
 
-func line_to_int(line *Line, labels map[string]int) (int, error) {
+func lineToInt(line *Line, labels map[string]int) (int, error) {
 	// HLT / IN / OUT instructions can be on their own without
 	// any address component
 	if line.instr == 0 || line.instr == 901 || line.instr == 902 {
@@ -65,7 +66,7 @@ func line_to_int(line *Line, labels map[string]int) (int, error) {
 	return line.instr + i, err
 }
 
-func lines_to_int(lines []*Line) ([]int, []error) {
+func linesToInt(lines []*Line) ([]int, []error) {
 	// Perform 1 pass to first index the positions of the
 	// mailboxes in the code so that it is possible to reference
 	// a mailbox after/before it is defined
@@ -80,7 +81,7 @@ func lines_to_int(lines []*Line) ([]int, []error) {
 	// Fill up the mailboxes by parsing the instructions
 	buff := make([]int, 100)
 	for i, line := range lines {
-		instr, err := line_to_int(line, labels)
+		instr, err := lineToInt(line, labels)
 		buff[i] = instr
 		if err != nil {
 			errors = append(errors, err)
@@ -118,6 +119,7 @@ func stringToLine(lineNo int, s string) (*Line, error) {
 		return nil, errorMessage(lineNo, err.Error())
 	}
 	return &Line{
+		text:   s,
 		label:  label,
 		instr:  opcode,
 		addr:   addr,
@@ -125,7 +127,7 @@ func stringToLine(lineNo int, s string) (*Line, error) {
 	}, nil
 }
 
-func compile(r io.Reader) ([]int, int, []error) {
+func parse(r io.Reader) ([]*Line, []error) {
 	i := 0            // current mailbox number
 	lineNo := 0       // current line number
 	buff := []*Line{} // compile buffer
@@ -152,9 +154,14 @@ func compile(r io.Reader) ([]int, int, []error) {
 		}
 		buff = append(buff, line)
 	}
+	return buff, errors
+}
+
+func compile(r io.Reader) ([]int, int, []error) {
+	lines, errors := parse(r)
 	if len(errors) != 0 {
 		return nil, 0, errors
 	}
-	code, errors := lines_to_int(buff)
-	return code, i, errors
+	code, errors := linesToInt(lines)
+	return code, len(lines), errors
 }

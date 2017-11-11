@@ -20,10 +20,14 @@ func mustInt(strs []string) []int {
 	return b
 }
 
+func toStderr(err error) {
+	fmt.Fprintln(os.Stderr, err)
+}
+
 func mustOpen(filepath string) (fp *os.File) {
 	fp, err := os.Open(filepath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		toStderr(err)
 		os.Exit(1)
 	}
 	return
@@ -39,16 +43,21 @@ func printMailboxes(vm *context) {
 	}
 }
 
+func checkErrors(errors []error) {
+	if len(errors) != 0 {
+		for _, err := range errors {
+			toStderr(err)
+		}
+		os.Exit(1)
+	}
+
+}
+
 func execFile(path string, inputs []int, debug bool) {
 	fp := mustOpen(path)
 	defer fp.Close()
 	mailboxes, _, errors := compile(fp)
-	if errors != nil && len(errors) != 0 {
-		for _, err := range errors {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		os.Exit(1)
-	}
+	checkErrors(errors)
 	ctx := newContextFromSlice(mailboxes)
 	if debug {
 		printMailboxes(ctx)
@@ -56,7 +65,7 @@ func execFile(path string, inputs []int, debug bool) {
 	ctx.input = inputs
 	outputs, err := ctx.run()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		toStderr(err)
 		os.Exit(1)
 	}
 	for _, out := range outputs {
@@ -71,13 +80,33 @@ func main() {
 	filename := flag.String("filename", "", "path to code")
 	workers := flag.Int("workers", 4, "no of workers to use")
 	batchMode := flag.Bool("batch", false, "batch process mode")
+	heatmap := flag.Bool("heatmap", false, "output heatmap")
 	debug := flag.Bool("debug", false, "debug mode")
 	flag.Parse()
+
+	if *heatmap {
+		inputs := mustInt(flag.Args())
+		fp := mustOpen(*filename)
+		vm, errors := newHeatmapVM(fp)
+		checkErrors(errors)
+		outputs, err := vm.run(inputs)
+		if err != nil {
+			toStderr(err)
+			os.Exit(1)
+		}
+		for _, out := range outputs {
+			toStderr(fmt.Errorf("%d", out))
+		}
+		writeEntries(vm.format(), os.Stdout)
+		return
+	}
+
 	if !(*batchMode) {
 		inputs := mustInt(flag.Args())
 		execFile(*filename, inputs, *debug)
 		return
 	}
+
 	fmt.Fprintln(os.Stderr, "Reading batch file:", *filename)
 	dirname := filepath.Dir(*filename)
 	fp := mustOpen(*filename)
