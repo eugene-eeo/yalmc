@@ -7,7 +7,7 @@ import "strings"
 import "path/filepath"
 
 func mustInt(strs []string) []int {
-	b, err := stringsToInts(strs)
+	b, err := inputsToInts(strs)
 	if err != nil {
 		toStderr(err)
 		os.Exit(1)

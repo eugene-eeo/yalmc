@@ -84,10 +84,10 @@ func batch(workers int, code []int, cases []testCase) []testResult {
 	return res
 }
 
-func stringsToInts(strs []string) ([]int, error) {
+func inputsToInts(strs []string) ([]int, error) {
 	b := []int{}
 	for _, s := range strs {
-		n, err := stoi(strings.TrimSpace(s))
+		n, err := stoi(strings.TrimSpace(s), 999)
 		if err != nil {
 			return nil, fmt.Errorf("cannot convert %s to int: %e", s, err)
 		}
@@ -115,12 +115,12 @@ func parseBatch(r io.Reader) (cases []testCase, errors []error) {
 			continue
 		}
 		name := contents[0]
-		inputs, err := stringsToInts(strings.Split(contents[1], ","))
+		inputs, err := inputsToInts(strings.Split(contents[1], ","))
 		if err != nil {
 			errors = append(errors, newError(lineNo, "invalid inputs"))
 			continue
 		}
-		outputs, err := stringsToInts(strings.Split(contents[2], ","))
+		outputs, err := inputsToInts(strings.Split(contents[2], ","))
 		if err != nil {
 			errors = append(errors, newError(lineNo, "invalid expected outputs"))
 			continue

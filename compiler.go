@@ -2,12 +2,10 @@ package main
 
 import "io"
 import "bufio"
-import "errors"
 import "fmt"
 import "strings"
 import "strconv"
 
-var outOfBounds error = errors.New("Number is > 999")
 var instrLookup = map[string]int{
 	"ADD": 100,
 	"SUB": 200,
@@ -35,13 +33,13 @@ func (e parseError) Error() string {
 	return fmt.Sprintf("Line %d: %s", e.line, e.reason)
 }
 
-func stoi(s string) (int, error) {
+func stoi(s string, max int) (int, error) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, err
 	}
-	if i > 1000 || i < 0 {
-		return 0, outOfBounds
+	if i > max || i < 0 {
+		return 0, fmt.Errorf("number not in range 0-%d", max)
 	}
 	return i, nil
 }
@@ -54,21 +52,21 @@ type Line struct {
 	addr   string
 }
 
-func newLineFromString(s string) (*Line, error) {
+func newLineFromString(lineNo int, s string) (*Line, error) {
 	s = strings.SplitN(s, "#", 2)[0]
 	if len(strings.TrimSpace(s)) == 0 {
 		return nil, nil
 	}
 	parts := strings.Fields(s)
 	if len(parts) > 3 {
-		return nil, fmt.Errorf("trailing content, expected [LABEL] INSTRUCTION [ADDR]")
+		return nil, newError(lineNo, "unexpected content after address section")
 	}
 	if s[0] == ' ' || s[0] == '\t' {
 		c := []string{""}
 		parts = append(c, parts...)
 	}
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("bad instruction, expected [LABEL] INSTRUCTION [ADDR]")
+		return nil, newError(lineNo, "got label with no instruction")
 	}
 	label := parts[0]
 	instr := parts[1]
@@ -77,17 +75,18 @@ func newLineFromString(s string) (*Line, error) {
 		addr = parts[2]
 	}
 	return &Line{
-		text:  s,
-		label: label,
-		instr: strings.ToUpper(instr),
-		addr:  addr,
+		text:   s,
+		lineNo: lineNo,
+		label:  label,
+		instr:  strings.ToUpper(instr),
+		addr:   addr,
 	}, nil
 }
 
 func (l *Line) toData(labels map[string]int) (int, error) {
 	op, ok := instrLookup[l.instr]
 	if !ok {
-		return 0, newError(l.lineNo, fmt.Sprintf("%s: invalid instruction", l.instr))
+		return 0, newError(l.lineNo, fmt.Sprintf("invalid instruction '%s'", l.instr))
 	}
 	// HLT / IN / OUT instructions can be on their own without
 	// any address component
@@ -99,7 +98,7 @@ func (l *Line) toData(labels map[string]int) (int, error) {
 		if l.addr == "" {
 			return 0, nil
 		}
-		return stoi(l.addr)
+		return stoi(l.addr, 999)
 	}
 	// Instructions other than IN/OUT/HLT need a target address
 	// so if we are not given one, error out.
@@ -109,7 +108,10 @@ func (l *Line) toData(labels map[string]int) (int, error) {
 	if i, ok := labels[l.addr]; ok {
 		return op + i, nil
 	}
-	i, err := stoi(l.addr)
+	i, err := stoi(l.addr, 99) // addresses are bounded from 0-99
+	if err != nil {
+		err = newError(l.lineNo, fmt.Sprintf("invalid address/label: %s", l.addr))
+	}
 	return op + i, err
 }
 
@@ -144,16 +146,15 @@ func parse(r io.Reader) ([]*Line, []error) {
 	for scanner.Scan() {
 		s := scanner.Text()
 		lineNo++
-		line, err := newLineFromString(s)
+		line, err := newLineFromString(lineNo, s)
 		if err == nil && line == nil {
 			// Empty line / only comments so don't bother incrementing
 			// mailbox number
 			continue
 		}
-		line.lineNo = lineNo
 		i++
 		if i == 100 { // Reached mailbox limit
-			errors = append(errors, newError(lineNo, "Out of mailboxes"))
+			errors = append(errors, newError(lineNo, "out of mailboxes"))
 			break
 		}
 		if err != nil {
