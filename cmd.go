@@ -7,20 +7,16 @@ import "strings"
 import "path/filepath"
 
 func mustInt(strs []string) []int {
-	b := make([]int, len(strs))
-	for i, s := range strs {
-		n, err := stoi(s)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Unable to convert arg ", i+1, ": ", s, "to a number")
-			os.Exit(1)
-		}
-		b[i] = n
+	b, err := stringsToInts(strs)
+	if err != nil {
+		toStderr(err)
+		os.Exit(1)
 	}
 	return b
 }
 
-func toStderr(err error) {
-	fmt.Fprintln(os.Stderr, err)
+func toStderr(strings ...interface{}) {
+	fmt.Fprintln(os.Stderr, strings...)
 }
 
 func mustOpen(filepath string) (fp *os.File) {
@@ -38,7 +34,7 @@ func printMailboxes(vm *context) {
 		for j := 0; j < 10; j++ {
 			row[j] = fmt.Sprintf("%03d", vm.mem[i*10+j])
 		}
-		fmt.Fprintln(os.Stderr, strings.Join(row, " | "))
+		toStderr(strings.Join(row, " | "))
 	}
 }
 
@@ -93,7 +89,7 @@ func main() {
 			os.Exit(1)
 		}
 		for _, out := range outputs {
-			toStderr(fmt.Errorf("%d", out))
+			toStderr(fmt.Sprintf("%d", out))
 		}
 		writeEntries(vm.format(), os.Stdout)
 		return
@@ -105,20 +101,20 @@ func main() {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "Reading batch file:", *filename)
+	toStderr("Reading batch file:", *filename)
 	dirname := filepath.Dir(*filename)
 	fp := mustOpen(*filename)
 	cases, errors := parseBatch(fp)
 	if len(errors) > 0 {
 		for _, e := range errors {
-			fmt.Fprintln(os.Stderr, " ", e)
+			toStderr(" ", e)
 		}
 		os.Exit(1)
 	}
 	dir := mustOpen(dirname)
 	files, err := dir.Readdirnames(-1)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		toStderr(err)
 		os.Exit(1)
 	}
 	table := newTable()
@@ -128,12 +124,12 @@ func main() {
 			continue
 		}
 		code, used, errs := compile(mustOpen(path))
-		fmt.Fprintln(os.Stderr, "  Compiling:", file)
+		toStderr("  Compiling:", file)
 		// failing to compile a single file is a non-fatal error
 		// so just continue trying to compile other files
 		if len(errs) > 0 {
 			for _, e := range errs {
-				fmt.Fprintln(os.Stderr, "   ", e)
+				toStderr("   ", e)
 			}
 			continue
 		}
@@ -141,7 +137,7 @@ func main() {
 	}
 	err = table.write(os.Stdout)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		toStderr(err)
 		os.Exit(1)
 	}
 }

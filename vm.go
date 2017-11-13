@@ -42,8 +42,7 @@ func (c *context) fetchExecute() (err error) {
 		c.halted = true
 	case 1: // ADD
 		c.neg = false
-		c.acc += c.mem[addr]
-		c.acc %= 1000
+		c.acc = (c.acc + c.mem[addr]) % 1000
 	case 2: // SUB
 		c.acc -= c.mem[addr]
 		if c.acc < 0 {

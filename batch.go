@@ -5,6 +5,7 @@ import "errors"
 import "strings"
 import "bufio"
 import "io"
+import "fmt"
 
 var outOfCycles = errors.New("out of cycles")
 
@@ -38,7 +39,9 @@ func (t *testResult) failed() bool {
 	return t.terminated || !isliceEq(t.tcase.output, t.output)
 }
 
-func runWith(vm *context, t *testCase) (output []int, cycles int, err error) {
+func runWith(vm *context, t *testCase) (r testResult) {
+	var err error = nil
+	cycles := 0
 	vm.input = t.input
 	for !vm.halted {
 		if cycles == t.cycleLimit {
@@ -51,41 +54,46 @@ func runWith(vm *context, t *testCase) (output []int, cycles int, err error) {
 			break
 		}
 	}
-	output = vm.output
+	r.cycles = cycles
+	r.tcase = *t
+	r.output = vm.output
+	r.terminated = (err != nil)
 	return
 }
 
-func executeCases(vm context, src <-chan testCase, sink chan<- testResult) {
-	for t := range src {
-		output, cycles, err := runWith(&vm, &t)
-		sink <- testResult{
-			tcase:      t,
-			output:     output,
-			cycles:     cycles,
-			terminated: err != nil,
-		}
-		vm.reset()
-	}
-}
-
 func batch(workers int, code []int, cases []testCase) []testResult {
-	casesQueue := make(chan testCase, len(cases))
-	resultsQueue := make(chan testResult, (len(cases)/4)+1)
+	src := make(chan testCase, len(cases))
+	dst := make(chan testResult, (len(cases)/4)+1)
 	for _, t := range cases {
-		casesQueue <- t
+		src <- t
 	}
+	close(src)
 	for w := 0; w < workers; w++ {
-		go executeCases(
-			*newContextFromSlice(code),
-			casesQueue,
-			resultsQueue,
-		)
+		go func() {
+			vm := newContextFromSlice(code)
+			for t := range src {
+				dst <- runWith(vm, &t)
+				vm.reset()
+			}
+		}()
 	}
 	res := make([]testResult, len(cases))
 	for i := 0; i < len(cases); i++ {
-		res[i] = <-resultsQueue
+		res[i] = <-dst
 	}
 	return res
+}
+
+func stringsToInts(strs []string) ([]int, error) {
+	b := []int{}
+	for _, s := range strs {
+		n, err := stoi(strings.TrimSpace(s))
+		if err != nil {
+			return nil, fmt.Errorf("cannot convert %s to int: %e", s, err)
+		}
+		b = append(b, n)
+	}
+	return b, nil
 }
 
 func parseBatch(r io.Reader) (cases []testCase, errors []error) {
@@ -107,12 +115,20 @@ func parseBatch(r io.Reader) (cases []testCase, errors []error) {
 			continue
 		}
 		name := contents[0]
-		inputs := mustInt(strings.Split(contents[1], ","))
-		outputs := mustInt(strings.Split(contents[2], ","))
+		inputs, err := stringsToInts(strings.Split(contents[1], ","))
+		if err != nil {
+			errors = append(errors, newError(lineNo, "invalid inputs"))
+			continue
+		}
+		outputs, err := stringsToInts(strings.Split(contents[2], ","))
+		if err != nil {
+			errors = append(errors, newError(lineNo, "invalid expected outputs"))
+			continue
+		}
 		cycles, err := strconv.Atoi(contents[3])
 		if err != nil {
 			errors = append(errors, newError(lineNo, "invalid cycle count"))
-			break
+			continue
 		}
 		cases = append(cases, testCase{
 			name:       name,
