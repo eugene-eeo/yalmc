@@ -22,16 +22,17 @@ var instrLookup = map[string]int{
 	"DAT": -1, // special for DAT
 }
 
-func errorMessage(lineNo int, message string) error {
-	return fmt.Errorf("Line %d: %s", lineNo, message)
+type parseError struct {
+	line   int
+	reason string
 }
 
-type Line struct {
-	text   string
-	lineNo int
-	label  string
-	instr  int
-	addr   string
+func newError(line int, reason string) error {
+	return parseError{line, reason}
+}
+
+func (e parseError) Error() string {
+	return fmt.Sprintf("Line %d: %s", e.line, e.reason)
 }
 
 func stoi(s string) (int, error) {
@@ -45,29 +46,71 @@ func stoi(s string) (int, error) {
 	return i, nil
 }
 
-func lineToInt(line *Line, labels map[string]int) (int, error) {
+type Line struct {
+	text   string
+	lineNo int
+	label  string
+	instr  int
+	addr   string
+}
+
+func newLineFromString(s string) (*Line, error) {
+	s = strings.SplitN(s, "#", 2)[0]
+	if len(strings.TrimSpace(s)) == 0 {
+		return nil, nil
+	}
+	parts := strings.Fields(s)
+	if len(parts) > 3 {
+		return nil, fmt.Errorf("trailing content, expected [LABEL] INSTRUCTION [ADDR]")
+	}
+	if s[0] == ' ' || s[0] == '\t' {
+		c := []string{""}
+		parts = append(c, parts...)
+	}
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("bad instruction, expected [LABEL] INSTRUCTION [ADDR]")
+	}
+	label := strings.TrimSpace(parts[0])
+	instr := strings.TrimSpace(strings.ToUpper(parts[1]))
+	addr := ""
+	if len(parts) == 3 {
+		addr = strings.TrimSpace(parts[2])
+	}
+	opcode, err := parseInstruction(instr)
+	if err != nil {
+		return nil, err
+	}
+	return &Line{
+		text:  s,
+		label: label,
+		instr: opcode,
+		addr:  addr,
+	}, nil
+}
+
+func (l *Line) toData(labels map[string]int) (int, error) {
 	// HLT / IN / OUT instructions can be on their own without
 	// any address component
-	if line.instr == 0 || line.instr == 901 || line.instr == 902 {
-		return line.instr, nil
+	if l.instr == 0 || l.instr == 901 || l.instr == 902 {
+		return l.instr, nil
 	}
 	// DAT [xxx], defaults to 0
-	if line.instr == -1 {
-		if line.addr == "" {
+	if l.instr == -1 {
+		if l.addr == "" {
 			return 0, nil
 		}
-		return stoi(line.addr)
+		return stoi(l.addr)
 	}
 	// Instructions other than IN/OUT/HLT need a target address
 	// so if we are not given one, error out.
-	if line.addr == "" {
-		return 0, errorMessage(line.lineNo, "no address given")
+	if l.addr == "" {
+		return 0, newError(l.lineNo, "no address given")
 	}
-	if i, ok := labels[line.addr]; ok {
-		return line.instr + i, nil
+	if i, ok := labels[l.addr]; ok {
+		return l.instr + i, nil
 	}
-	i, err := stoi(line.addr)
-	return line.instr + i, err
+	i, err := stoi(l.addr)
+	return l.instr + i, err
 }
 
 func linesToInt(lines []*Line) ([]int, error) {
@@ -84,7 +127,7 @@ func linesToInt(lines []*Line) ([]int, error) {
 	// Fill up the mailboxes by parsing the instructions
 	buff := make([]int, 100)
 	for i, line := range lines {
-		instr, err := lineToInt(line, labels)
+		instr, err := line.toData(labels)
 		buff[i] = instr
 		if err != nil {
 			return nil, err
@@ -101,34 +144,6 @@ func parseInstruction(s string) (int, error) {
 	return a, nil
 }
 
-func stringToLine(lineNo int, s string) (*Line, error) {
-	s = strings.SplitN(s, "#", 2)[0]
-	if len(strings.TrimSpace(s)) == 0 {
-		return nil, nil
-	}
-	c := strings.SplitN(s, "\t", 3)
-	if len(c) < 2 {
-		return nil, errorMessage(lineNo, "bad instruction")
-	}
-	label := strings.TrimSpace(c[0])
-	instr := strings.TrimSpace(strings.ToUpper(c[1]))
-	addr := ""
-	if len(c) == 3 {
-		addr = strings.TrimSpace(c[2])
-	}
-	opcode, err := parseInstruction(instr)
-	if err != nil {
-		return nil, errorMessage(lineNo, err.Error())
-	}
-	return &Line{
-		text:   s,
-		label:  label,
-		instr:  opcode,
-		addr:   addr,
-		lineNo: lineNo,
-	}, nil
-}
-
 func parse(r io.Reader) ([]*Line, []error) {
 	i := 0            // current mailbox number
 	lineNo := 0       // current line number
@@ -138,16 +153,16 @@ func parse(r io.Reader) ([]*Line, []error) {
 	for scanner.Scan() {
 		s := scanner.Text()
 		lineNo++
-		line, err := stringToLine(lineNo, s)
-		// Empty line / only comments so don't bother incrementing
-		// mailbox number
+		line, err := newLineFromString(s)
 		if err == nil && line == nil {
+			// Empty line / only comments so don't bother incrementing
+			// mailbox number
 			continue
 		}
+		line.lineNo = lineNo
 		i++
-		// Reached mailbox limit, don't bother incrementing
-		if i == 100 {
-			errors = append(errors, errorMessage(lineNo, "Out of mailboxes"))
+		if i == 100 { // Reached mailbox limit
+			errors = append(errors, newError(lineNo, "Out of mailboxes"))
 			break
 		}
 		if err != nil {

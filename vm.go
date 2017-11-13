@@ -40,39 +40,31 @@ func (c *context) fetchExecute() (err error) {
 	switch opcode {
 	case 0: // HLT
 		c.halted = true
-		return
 	case 1: // ADD
 		c.neg = false
 		c.acc += c.mem[addr]
 		c.acc %= 1000
-		return
 	case 2: // SUB
 		c.acc -= c.mem[addr]
 		if c.acc < 0 {
 			c.neg = true
 		}
 		c.acc %= 1000
-		return
 	case 3: // STO
 		c.mem[addr] = c.acc
-		return
 	case 5: // LDA
 		c.neg = false
 		c.acc = c.mem[addr]
-		return
 	case 6: // BR
 		c.pc = addr
-		return
 	case 7: // BRZ
 		if c.acc == 0 {
 			c.pc = addr
 		}
-		return
-	case 8:
+	case 8: // BRP
 		if !c.neg {
 			c.pc = addr
 		}
-		return
 	case 9:
 		// 901 => IN
 		if addr == 1 {
@@ -84,12 +76,10 @@ func (c *context) fetchExecute() (err error) {
 			c.acc = c.input[0]
 			c.neg = false
 			c.input = c.input[1:]
-			return
 		}
 		// 902 => OUT
 		if addr == 2 {
 			c.output = append(c.output, c.acc)
-			return
 		}
 	}
 	return

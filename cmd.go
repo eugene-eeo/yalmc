@@ -113,6 +113,7 @@ func main() {
 		for _, e := range errors {
 			fmt.Fprintln(os.Stderr, " ", e)
 		}
+		os.Exit(1)
 	}
 	dir := mustOpen(dirname)
 	files, err := dir.Readdirnames(-1)

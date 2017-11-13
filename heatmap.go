@@ -63,9 +63,11 @@ func (h *heatmapVM) format() []entry {
 	for i, _ := range entries {
 		count, ok := h.heatmap[i]
 		text := ""
+		// first check if the mailbox is a line of code
 		if len(h.lines) > i {
 			text = h.lines[i].text
 		} else if ok {
+			// else check that we have executed this mailbox
 			text = fmt.Sprintf("%03d", h.vm.mem[i])
 		}
 		entries[i] = entry{i, text, count}
@@ -91,8 +93,8 @@ func writeEntries(entries []entry, w io.Writer) error {
 		r := int(255 * (2 * e.count / max))
 		g := int(255 * (2 * (1 - e.count/max)))
 		s := fmt.Sprintf(
-			"<tr><td style='background-color: %s' class='count'>%d</td><td>%02d</td><td><pre>%s</pre></td></tr>",
-			fmt.Sprintf("rgba(%d, %d, 0, 0.35)", r, g),
+			"<tr><td style='background-color: rgba(%d, %d, 0, 0.35)' class='count'>%d</td><td>%02d</td><td><pre>%s</pre></td></tr>",
+			r, g,
 			e.count,
 			e.mailbox,
 			e.text,

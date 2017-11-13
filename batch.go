@@ -5,7 +5,6 @@ import "errors"
 import "strings"
 import "bufio"
 import "io"
-import "fmt"
 
 var outOfCycles = errors.New("out of cycles")
 
@@ -98,12 +97,13 @@ func parseBatch(r io.Reader) (cases []testCase, errors []error) {
 	for scanner.Scan() {
 		lineNo++
 		line := strings.TrimSpace(scanner.Text())
-		if line[0] == '#' {
+		line = strings.SplitN(line, "#", 2)[0]
+		if len(line) == 0 {
 			continue
 		}
 		contents := strings.SplitN(line, ";", 4)
 		if len(contents) != 4 {
-			errors = append(errors, fmt.Errorf("Line %d: Invalid test case"))
+			errors = append(errors, newError(lineNo, "invalid test case"))
 			continue
 		}
 		name := contents[0]
@@ -111,7 +111,7 @@ func parseBatch(r io.Reader) (cases []testCase, errors []error) {
 		outputs := mustInt(strings.Split(contents[2], ","))
 		cycles, err := strconv.Atoi(contents[3])
 		if err != nil {
-			errors = append(errors, fmt.Errorf("Line %d: Invalid cycle count"))
+			errors = append(errors, newError(lineNo, "invalid cycle count"))
 			break
 		}
 		cases = append(cases, testCase{
