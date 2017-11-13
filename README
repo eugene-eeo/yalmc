@@ -41,13 +41,13 @@
     Roadmap:
     ~~~~~~~~
 
-        [ ] Less pedantic parsing phase[2]
+        [x] Less pedantic parsing phase[2]
         [x] Code compilation and generation
         [x] Basic execution of code in VM
         [x] Batch processing
         [x] Friendlier output
         [x] Mailbox heatmap
-        [ ] Nicer debug output
+        [ ] Nicer -debug output
         [ ] Actually test this
 
 
