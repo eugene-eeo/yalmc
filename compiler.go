@@ -50,7 +50,7 @@ type Line struct {
 	text   string
 	lineNo int
 	label  string
-	instr  int
+	instr  string
 	addr   string
 }
 
@@ -70,32 +70,32 @@ func newLineFromString(s string) (*Line, error) {
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("bad instruction, expected [LABEL] INSTRUCTION [ADDR]")
 	}
-	label := strings.TrimSpace(parts[0])
-	instr := strings.TrimSpace(strings.ToUpper(parts[1]))
+	label := parts[0]
+	instr := parts[1]
 	addr := ""
 	if len(parts) == 3 {
-		addr = strings.TrimSpace(parts[2])
-	}
-	opcode, err := parseInstruction(instr)
-	if err != nil {
-		return nil, err
+		addr = parts[2]
 	}
 	return &Line{
 		text:  s,
 		label: label,
-		instr: opcode,
+		instr: strings.ToUpper(instr),
 		addr:  addr,
 	}, nil
 }
 
 func (l *Line) toData(labels map[string]int) (int, error) {
+	op, ok := instrLookup[l.instr]
+	if !ok {
+		return 0, newError(l.lineNo, fmt.Sprintf("%s: invalid instruction", l.instr))
+	}
 	// HLT / IN / OUT instructions can be on their own without
 	// any address component
-	if l.instr == 0 || l.instr == 901 || l.instr == 902 {
-		return l.instr, nil
+	if op == 0 || op == 901 || op == 902 {
+		return op, nil
 	}
 	// DAT [xxx], defaults to 0
-	if l.instr == -1 {
+	if op == -1 {
 		if l.addr == "" {
 			return 0, nil
 		}
@@ -107,10 +107,10 @@ func (l *Line) toData(labels map[string]int) (int, error) {
 		return 0, newError(l.lineNo, "no address given")
 	}
 	if i, ok := labels[l.addr]; ok {
-		return l.instr + i, nil
+		return op + i, nil
 	}
 	i, err := stoi(l.addr)
-	return l.instr + i, err
+	return op + i, err
 }
 
 func linesToInt(lines []*Line) ([]int, error) {
@@ -119,10 +119,9 @@ func linesToInt(lines []*Line) ([]int, error) {
 	// a mailbox after/before it is defined
 	labels := map[string]int{}
 	for mailbox, line := range lines {
-		if line.label == "" {
-			continue
+		if len(line.label) > 0 {
+			labels[line.label] = mailbox
 		}
-		labels[line.label] = mailbox
 	}
 	// Fill up the mailboxes by parsing the instructions
 	buff := make([]int, 100)
@@ -134,14 +133,6 @@ func linesToInt(lines []*Line) ([]int, error) {
 		}
 	}
 	return buff, nil
-}
-
-func parseInstruction(s string) (int, error) {
-	a, ok := instrLookup[s]
-	if !ok {
-		return -1, fmt.Errorf("%s: invalid instruction", s)
-	}
-	return a, nil
 }
 
 func parse(r io.Reader) ([]*Line, []error) {
@@ -166,7 +157,7 @@ func parse(r io.Reader) ([]*Line, []error) {
 			break
 		}
 		if err != nil {
-			errors = append(errors, err)
+			errors = append(errors, newError(lineNo, err.Error()))
 			continue
 		}
 		buff = append(buff, line)
@@ -182,7 +173,7 @@ func compile(r io.Reader) ([]int, int, []error) {
 	code, err := linesToInt(lines)
 	errors = []error{}
 	if err != nil {
-		errors = append(errors, err)
+		errors = []error{err}
 	}
 	return code, len(lines), errors
 }
