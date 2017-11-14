@@ -128,9 +128,7 @@ func main() {
 		// failing to compile a single file is a non-fatal error
 		// so just continue trying to compile other files
 		if len(errs) > 0 {
-			for _, e := range errs {
-				toStderr("   ", e)
-			}
+			table.addErrors(path, errs)
 			continue
 		}
 		table.addRow(path, used, batch(*workers, code, cases))

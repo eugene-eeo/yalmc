@@ -118,7 +118,7 @@ func (l *Line) toData(labels map[string]int) (int, error) {
 func linesToInt(lines []*Line) ([]int, error) {
 	// Perform 1 pass to first index the positions of the
 	// mailboxes in the code so that it is possible to reference
-	// a mailbox after/before it is defined
+	// a label after/before it is defined
 	labels := map[string]int{}
 	for mailbox, line := range lines {
 		if len(line.label) > 0 {
@@ -158,7 +158,7 @@ func parse(r io.Reader) ([]*Line, []error) {
 			break
 		}
 		if err != nil {
-			errors = append(errors, newError(lineNo, err.Error()))
+			errors = append(errors, err)
 			continue
 		}
 		buff = append(buff, line)

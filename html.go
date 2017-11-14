@@ -41,6 +41,18 @@ func newTable() *table {
 	return &table{[]string{}}
 }
 
+func (t *table) addErrors(path string, errors []error) {
+	errorStrings := []string{}
+	for _, err := range errors {
+		errorStrings = append(errorStrings, err.Error())
+	}
+	t.fragments = append(t.fragments, fmt.Sprintf(
+		"<tr><th>%s</th><td>-</td><td colspan=6><pre>%s</pre></td></tr>",
+		filepath.Base(path),
+		strings.Join(errorStrings, "\n"),
+	))
+}
+
 func (t *table) addRow(path string, mailboxes int, results []testResult) {
 	trs := []string{fmt.Sprintf(
 		"<tr><th rowspan='%d'>%s</th><td rowspan='%d'>%d</td></tr>",
