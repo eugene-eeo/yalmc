@@ -8,6 +8,10 @@ import "io"
 import "fmt"
 
 var outOfCycles = errors.New("out of cycles")
+var invalidTestCase = errors.New("invalid test case")
+var invalidTestCaseInputs = errors.New("invalid inputs")
+var invalidTestCaseOutputs = errors.New("invalid outputs")
+var invalidTestCaseCycles = errors.New("invalid cycles")
 
 type testCase struct {
 	name       string
@@ -86,14 +90,47 @@ func batch(workers int, code []int, cases []testCase) []testResult {
 
 func inputsToInts(strs []string) ([]int, error) {
 	b := []int{}
-	for _, s := range strs {
+	for i, s := range strs {
+		if i == 0 && s == "" {
+			continue
+		}
 		n, err := stoi(strings.TrimSpace(s), 999)
 		if err != nil {
-			return nil, fmt.Errorf("cannot convert %s to int: %e", s, err)
+			return nil, fmt.Errorf("cannot convert '%s' to int: %s", s, err)
 		}
 		b = append(b, n)
 	}
 	return b, nil
+}
+
+func newTestCaseFromString(s string) (*testCase, error) {
+	s = strings.SplitN(s, "#", 2)[0]
+	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		return nil, nil
+	}
+	contents := strings.SplitN(s, ";", 4)
+	if len(contents) != 4 {
+		return nil, invalidTestCase
+	}
+	inputs, err := inputsToInts(strings.Split(contents[1], ","))
+	if err != nil {
+		return nil, invalidTestCaseInputs
+	}
+	outputs, err := inputsToInts(strings.Split(contents[2], ","))
+	if err != nil {
+		return nil, invalidTestCaseOutputs
+	}
+	cycles, err := strconv.Atoi(contents[3])
+	if err != nil {
+		return nil, invalidTestCaseCycles
+	}
+	return &testCase{
+		name:       contents[0],
+		input:      inputs,
+		output:     outputs,
+		cycleLimit: cycles,
+	}, nil
 }
 
 func parseBatch(r io.Reader) (cases []testCase, errors []error) {
@@ -105,37 +142,15 @@ func parseBatch(r io.Reader) (cases []testCase, errors []error) {
 	for scanner.Scan() {
 		lineNo++
 		line := strings.TrimSpace(scanner.Text())
-		line = strings.SplitN(line, "#", 2)[0]
-		if len(line) == 0 {
-			continue
-		}
-		contents := strings.SplitN(line, ";", 4)
-		if len(contents) != 4 {
-			errors = append(errors, newError(lineNo, "invalid test case"))
-			continue
-		}
-		name := contents[0]
-		inputs, err := inputsToInts(strings.Split(contents[1], ","))
+		t, err := newTestCaseFromString(line)
 		if err != nil {
-			errors = append(errors, newError(lineNo, "invalid inputs"))
+			errors = append(errors, newError(lineNo, err.Error()))
 			continue
 		}
-		outputs, err := inputsToInts(strings.Split(contents[2], ","))
-		if err != nil {
-			errors = append(errors, newError(lineNo, "invalid expected outputs"))
+		if t == nil {
 			continue
 		}
-		cycles, err := strconv.Atoi(contents[3])
-		if err != nil {
-			errors = append(errors, newError(lineNo, "invalid cycle count"))
-			continue
-		}
-		cases = append(cases, testCase{
-			name:       name,
-			input:      inputs,
-			output:     outputs,
-			cycleLimit: cycles,
-		})
+		cases = append(cases, *t)
 	}
 	return
 }

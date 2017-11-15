@@ -47,3 +47,29 @@ temp	DAT	# space for data value
 	_, err = vm.run()
 	assert.Equal(t, err, noMoreInputs)
 }
+
+func TestVMBR(t *testing.T) {
+	r := strings.NewReader(`
+	LDA	i
+	BRZ	k
+	BRP	h
+	BR	h
+k	LDA j
+h	OUT
+	HLT
+i	DAT	99
+j	DAT 88`)
+	code, _, errors := compile(r)
+	assert.Equal(t, len(errors), 0, "No errors in compilation")
+	vm := newContextFromSlice(code)
+	vm.input = []int{}
+	output, err := vm.run()
+	assert.Equal(t, err, nil)
+	assert.Equal(t, output, []int{99})
+	// check that BRZ works properly
+	vm.mem[7] = 0
+	vm.reset()
+	output, err = vm.run()
+	assert.Equal(t, err, nil)
+	assert.Equal(t, output, []int{88})
+}
